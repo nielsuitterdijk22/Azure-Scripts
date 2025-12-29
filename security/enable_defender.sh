@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to enable Microsoft Defender for SQL and Key Vault on all subscriptions
+# Script to enable Microsoft Defender for SQL, Key Vault, ACR, App Service, and Storage on all subscriptions
 # Requires: Azure CLI with appropriate permissions
 
 set -e  # Exit on error
@@ -79,17 +79,62 @@ echo "$subscriptions" | jq -c '.[]' | while read -r sub; do
         failed_count=$((failed_count + 1))
         failed_subs+=("${sub_name} - KeyVault")
     fi
+
+    # Enable Defender for Container Registry (ACR)
+    log "  Enabling Defender for Container Registry..."
+    if az security pricing create \
+        --name ContainerRegistry \
+        --tier Standard \
+        --subscription "$sub_id" > /dev/null 2>&1; then
+        log "  ✓ Defender for Container Registry enabled"
+    else
+        warn "  ✗ Failed to enable Defender for Container Registry"
+        failed_count=$((failed_count + 1))
+        failed_subs+=("${sub_name} - ContainerRegistry")
+    fi
+
+    # Enable Defender for App Service
+    log "  Enabling Defender for App Service..."
+    if az security pricing create \
+        --name AppServices \
+        --tier Standard \
+        --subscription "$sub_id" > /dev/null 2>&1; then
+        log "  ✓ Defender for App Service enabled"
+    else
+        warn "  ✗ Failed to enable Defender for App Service"
+        failed_count=$((failed_count + 1))
+        failed_subs+=("${sub_name} - AppServices")
+    fi
+
+    # Enable Defender for Storage Accounts
+    log "  Enabling Defender for Storage Accounts..."
+    if az security pricing create \
+        --name StorageAccounts \
+        --tier Standard \
+        --subscription "$sub_id" > /dev/null 2>&1; then
+        log "  ✓ Defender for Storage Accounts enabled"
+    else
+        warn "  ✗ Failed to enable Defender for Storage Accounts"
+        failed_count=$((failed_count + 1))
+        failed_subs+=("${sub_name} - StorageAccounts")
+    fi
     
     # Verify the settings
     log "  Verifying settings..."
     sql_status=$(az security pricing show --name SqlServers --subscription "$sub_id" --query "pricingTier" -o tsv 2>/dev/null || echo "Unknown")
     kv_status=$(az security pricing show --name KeyVaults --subscription "$sub_id" --query "pricingTier" -o tsv 2>/dev/null || echo "Unknown")
-    
+    acr_status=$(az security pricing show --name ContainerRegistry --subscription "$sub_id" --query "pricingTier" -o tsv 2>/dev/null || echo "Unknown")
+    app_status=$(az security pricing show --name AppServices --subscription "$sub_id" --query "pricingTier" -o tsv 2>/dev/null || echo "Unknown")
+    storage_status=$(az security pricing show --name StorageAccounts --subscription "$sub_id" --query "pricingTier" -o tsv 2>/dev/null || echo "Unknown")
+
     log "  Current status:"
     log "    - SQL Servers: ${sql_status}"
     log "    - Key Vaults: ${kv_status}"
-    
-    if [[ "$sql_status" == "Standard" ]] && [[ "$kv_status" == "Standard" ]]; then
+    log "    - Container Registry: ${acr_status}"
+    log "    - App Services: ${app_status}"
+    log "    - Storage Accounts: ${storage_status}"
+
+    if [[ "$sql_status" == "Standard" ]] && [[ "$kv_status" == "Standard" ]] && [[ "$acr_status" == "Standard" ]] && [[ "$app_status" == "Standard" ]] && [[ "$storage_status" == "Standard" ]]; then
         success_count=$((success_count + 1))
     fi
 done
