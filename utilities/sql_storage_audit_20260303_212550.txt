@@ -1,0 +1,41 @@
+Azure SQL Database Storage Audit
+=================================
+Fetching subscriptions...
+Found 53 enabled subscription(s).
+
+SUBSCRIPTION                   SERVER                 DATABASE                           MAX GB    USED GB TIER              
+--------------------------------------------------------------------------------------------------------------------------
+Connectivity-D                 postcodedbserver       PostcodeDB                           32.0        0.0 GeneralPurpose    
+Claims-T                       sql-didas-t-we-001     sqldb-didas-t-we-001                 50.0       0.36 Standard          
+Claims-A                       sql-didas-a-we-001     sqldb-didas-a-we-001                 50.0       0.35 Standard          
+Claims-P                       sql-didas-p-we-001     sqldb-didas-p-we-001                500.0      13.03 Standard          
+Claims-D                       sql-didas-d-we-001     sqldb-didas-d-we-001_2025-12-       250.0       0.11 Standard          
+Claims-D                       sql-didas-d-we-001     sqldb-didas-d-we-001                 20.0       0.12 Standard          
+Core-P                         sql-core-appts-p-we-0  db-core-appointments-p-we-001         2.0       0.15 Basic             
+Core-P                         sql-core-notification  db-core-notifications-p-we-00         2.0       0.02 Basic             
+Core-A                         sql-core-appts-a-we-0  db-core-appointments-a-we-001         2.0       0.06 Basic             
+Core-A                         sql-core-notification  db-core-notifications-a-we-00         2.0       0.02 Basic             
+Core-D                         sql-core-appts-d-we-0  db-core-appointments-d-we-001         2.0       0.05 Basic             
+Core-D                         sql-core-notification  db-core-notifications-d-we-00         2.0       0.02 Basic             
+Core-T                         sql-core-appts-t-we-0  db-core-appointments-t-we-001         2.0       0.06 Basic             
+Core-T                         sql-core-notification  db-core-notifications-t-we-00         2.0       0.02 Basic             
+Documents-P                    sql-core-syshub-p-we-  sqldb-core-syshub-p-we-001            2.0       0.02 Basic             
+Documents-T                    sql-core-syshub-t-we-  sqldb-core-syshub-t-we-001            2.0       0.02 Basic             
+Documents-D                    sql-core-syshub-d-we-  sqldb-core-syshub-d-we-001            2.0       0.03 Basic             
+Documents-A                    sql-core-syshub-a-we-  sqldb-core-syshub-a-we-001            2.0       0.02 Basic             
+AI-S                           dasaimailboxpoc-sqlse  dasaimailboxpoc-sqldb                 2.0       0.02 Basic             
+Claims-S                       sql-didas-s-we-001     didas                                32.0        0.0 GeneralPurpose    
+Claims-S                       sql-didas-s-we-001     sqldb-didas-s-we-001                  2.0        0.0 Basic             
+Core-S                         auth0eventdata         auth0-event-data                     32.0        0.0 GeneralPurpose    
+Core-S                         sql-core-appts-s-we-0  db-core-appointments-s-we-001         2.0       0.02 Basic             
+Core-S                         sql-core-notification  db-core-notifications-s-we-00         2.0        0.0 Basic             
+Core-S                         sql-core-testabhi-s-w  sqldb-core-testabhi-s-we-001          2.0        0.0 Standard          
+Channels-S                     sql-chan-patrik-s-we-  db-chan-patrik-s-we-001              32.0        0.0 GeneralPurpose    
+Channels-S                     sql-events-s-we-001    sqldb-events-s-we-001                 2.0        0.0 Basic             
+
+---
+Total databases  : 27
+Total allocated  : 1034.0 GB
+Total used       : 14.53 GB
+
+Output saved to: /home/projects/_scripts/utilities/sql_storage_audit_20260303_212550.txt

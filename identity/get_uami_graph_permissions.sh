@@ -39,15 +39,33 @@ if [[ ! "$FORMAT" =~ ^(table|json|tsv)$ ]]; then
 fi
 
 echo "🔍 Finding managed identity..."
-MANAGED_IDENTITY_ID=$(find_managed_identity "$IDENTITY") || exit 1
+MANAGED_IDENTITY_ID=$(find_managed_identity "$IDENTITY") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "🔍 Getting Microsoft Graph service principal..."
-GRAPH_SP_ID=$(get_service_principal_id "Microsoft Graph") || exit 1
+GRAPH_SP_ID=$(get_service_principal_id "Microsoft Graph") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "🔍 Getting assigned Graph permissions..."
 
 # Get app role assignments for this managed identity to Microsoft Graph
-ASSIGNMENTS=$(az rest --method GET --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MANAGED_IDENTITY_ID}/appRoleAssignments" --query "value[?resourceId=='${GRAPH_SP_ID}']")
+ASSIGNMENTS=$(az rest --method GET --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MANAGED_IDENTITY_ID}/appRoleAssignments" --query "value[?resourceId=='${GRAPH_SP_ID}']") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 if [[ "$ASSIGNMENTS" == "[]" ]]; then
     echo "❌ No Microsoft Graph permissions found for this managed identity"
@@ -56,7 +74,13 @@ fi
 
 # Get the app roles details from Microsoft Graph service principal
 echo "🔍 Getting permission details from Microsoft Graph..."
-GRAPH_ROLES=$(az ad sp show --id "$GRAPH_SP_ID" --query "appRoles" -o json)
+GRAPH_ROLES=$(az ad sp show --id "$GRAPH_SP_ID" --query "appRoles" -o json) || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 # Process and display the permissions
 echo ""

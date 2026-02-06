@@ -35,13 +35,31 @@ if [[ -z "$IDENTITY" || -z "$PERMISSION" ]]; then
 fi
 
 echo "🔍 Finding managed identity..."
-MANAGED_IDENTITY_ID=$(find_managed_identity "$IDENTITY") || exit 1
+MANAGED_IDENTITY_ID=$(find_managed_identity "$IDENTITY") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "🔍 Getting Microsoft Graph service principal..."
-GRAPH_SP_ID=$(get_service_principal_id "Microsoft Graph") || exit 1
+GRAPH_SP_ID=$(get_service_principal_id "Microsoft Graph") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "🔍 Getting permission details..."
-ROLE_ID=$(get_app_role_id "$GRAPH_SP_ID" "$PERMISSION") || exit 1
+ROLE_ID=$(get_app_role_id "$GRAPH_SP_ID" "$PERMISSION") || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "🔍 Checking existing assignments..."
 if check_existing_assignment "$MANAGED_IDENTITY_ID" "$GRAPH_SP_ID" "$ROLE_ID"; then
@@ -50,6 +68,12 @@ if check_existing_assignment "$MANAGED_IDENTITY_ID" "$GRAPH_SP_ID" "$ROLE_ID"; t
 fi
 
 echo "🚀 Assigning permission..."
-assign_app_role "$MANAGED_IDENTITY_ID" "$GRAPH_SP_ID" "$ROLE_ID"
+assign_app_role "$MANAGED_IDENTITY_ID" "$GRAPH_SP_ID" "$ROLE_ID" || {
+    echo ""
+    echo "💡 If you see authentication errors above, please run:"
+    echo "   az login --scope https://graph.microsoft.com//.default"
+    echo ""
+    exit 1
+}
 
 echo "✅ Successfully assigned Microsoft Graph permission: $PERMISSION"

@@ -9,11 +9,24 @@ find_managed_identity() {
     # If it looks like a GUID, try to validate it directly
     if [[ "$name_or_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
         echo "🔍 Validating object ID: $name_or_id" >&2
-        if az ad sp show --id "$name_or_id" --query "servicePrincipalType" -o tsv 2>/dev/null | grep -q "ManagedIdentity"; then
+        local sp_type=$(az ad sp show --id "$name_or_id" --query "servicePrincipalType" -o tsv 2>&1)
+        if [[ $? -ne 0 ]]; then
+            if echo "$sp_type" | grep -q "AADSTS70043\|refresh token has expired\|Interactive authentication is needed"; then
+                echo "Error: Authentication required" >&2
+                echo "" >&2
+                echo "💡 Please run:" >&2
+                echo "   az login --scope https://graph.microsoft.com//.default" >&2
+                echo "" >&2
+            else
+                echo "Error: Object ID '$name_or_id' not found" >&2
+            fi
+            return 1
+        fi
+        if echo "$sp_type" | grep -q "ManagedIdentity"; then
             echo "$name_or_id"
             return 0
         else
-            echo "Error: Object ID '$name_or_id' is not a managed identity or not found" >&2
+            echo "Error: Object ID '$name_or_id' is not a managed identity" >&2
             return 1
         fi
     fi
@@ -21,29 +34,55 @@ find_managed_identity() {
     echo "🔍 Searching for managed identity: $name_or_id" >&2
 
     # Use filter-based search first (most efficient, avoids truncation)
-    local object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity' and displayName eq '$name_or_id'" --query "[0].id" -o tsv 2>/dev/null)
+    local object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity' and displayName eq '$name_or_id'" --query "[0].id" -o tsv 2>&1)
+
+    # Check for authentication errors
+    if [[ $? -ne 0 ]] && echo "$object_id" | grep -q "AADSTS70043\|refresh token has expired\|Interactive authentication is needed"; then
+        echo "Error: Authentication required" >&2
+        echo "" >&2
+        echo "💡 Please run:" >&2
+        echo "   az login --scope https://graph.microsoft.com//.default" >&2
+        echo "" >&2
+        return 1
+    fi
 
     # If exact match not found, try startswith filter for partial matches
     if [[ -z "$object_id" || "$object_id" == "null" ]]; then
-        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity' and startswith(displayName,'$name_or_id')" --query "[?displayName=='$name_or_id'].id" -o tsv 2>/dev/null)
+        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity' and startswith(displayName,'$name_or_id')" --query "[?displayName=='$name_or_id'].id" -o tsv 2>&1)
+        if [[ $? -ne 0 ]] && echo "$object_id" | grep -q "AADSTS70043\|refresh token has expired\|Interactive authentication is needed"; then
+            echo "Error: Authentication required" >&2
+            echo "" >&2
+            echo "💡 Please run:" >&2
+            echo "   az login --scope https://graph.microsoft.com//.default" >&2
+            echo "" >&2
+            return 1
+        fi
     fi
 
     # If still not found, try contains filter for broader matching
     if [[ -z "$object_id" || "$object_id" == "null" ]]; then
         echo "🔍 Trying broader search..." >&2
-        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[?contains(displayName, '$name_or_id')].{id:id,name:displayName}" -o json 2>/dev/null | jq -r '.[0].id // empty')
+        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[?contains(displayName, '$name_or_id')].{id:id,name:displayName}" -o json 2>&1 | jq -r '.[0].id // empty')
     fi
 
     # Fallback: search system-assigned managed identities by alternative names
     if [[ -z "$object_id" || "$object_id" == "null" ]]; then
         echo "🔍 Searching system-assigned managed identities..." >&2
-        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[?alternativeNames != null && length(alternativeNames) > \`0\`] | [?contains(join('', alternativeNames), '$name_or_id')].id" -o tsv 2>/dev/null)
+        object_id=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[?alternativeNames != null && length(alternativeNames) > \`0\`] | [?contains(join('', alternativeNames), '$name_or_id')].id" -o tsv 2>&1)
     fi
 
     if [[ -z "$object_id" || "$object_id" == "null" ]]; then
         echo "Error: Managed identity '$name_or_id' not found" >&2
         echo "Available managed identities (showing first 10):" >&2
-        az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[0:9].[displayName,id]" -o table >&2 2>/dev/null || echo "Could not list available identities (authentication may be required)" >&2
+        local list_result=$(az ad sp list --filter "servicePrincipalType eq 'ManagedIdentity'" --query "[0:9].[displayName,id]" -o table 2>&1)
+        if echo "$list_result" | grep -q "AADSTS70043\|refresh token has expired\|Interactive authentication is needed"; then
+            echo "Could not list available identities (authentication required)" >&2
+            echo "" >&2
+            echo "💡 Please run:" >&2
+            echo "   az login --scope https://graph.microsoft.com//.default" >&2
+        else
+            echo "$list_result" >&2
+        fi
         echo "Tip: Use object ID directly or check the exact resource name" >&2
         return 1
     fi
